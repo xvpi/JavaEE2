@@ -16,4 +16,3 @@ public class CreateFileCommand implements Command {
         fileManager.createFile(fileName);
     }
 }
-
