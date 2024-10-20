@@ -1,14 +1,13 @@
 package com.xvpi.filemansys;
+import com.xvpi.filemansys.client.Client;
 
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class FileManSysApplication {
 
     public static void main(String[] args) {
-        System.out.println("hello java!");
-        System.out.println("test git push!");
+        Client.main(args);
     }
 
 }
