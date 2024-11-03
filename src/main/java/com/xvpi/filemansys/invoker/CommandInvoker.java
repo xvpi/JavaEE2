@@ -93,13 +93,13 @@ public class CommandInvoker {
     private void showMenu() {
         System.out.println("\n==== 文件管理系统 ====");
         System.out.println("cd <路径> - 设置当前文件夹    cd .. - 返回上一层    cd ../.. - 返回上两层");
-        System.out.println("chdir - 查看当前工作路径          list <name/time/byte> - 按序罗列文件夹内容");
+        System.out.println("chdir - 查看当前工作路径         list <name/time/byte> - 按序罗列文件夹内容");
         System.out.println("mkFile <文件名> - 创建文件       delFile <文件名> - 删除文件");
         System.out.println("mkDir <文件夹名> - 创建文件夹     delDir <文件夹名> - 删除文件夹");
         System.out.println("open <文件名> - 打开文本文件      find <关键词> - 查找文件");
         System.out.println("copy <文件/文件夹> - 拷贝        paste  - 粘贴文件/文件夹");
         System.out.println("encrypt <文件名> - 加密文件      decrypt <文件名> - 解密文件");
-        System.out.println("compress <文件名> - 压缩文件夹   decompress <文件名> - 解压文件");
+        System.out.println("compress <文件/文件夹> - 压缩    decompress <文件/文件夹> - 解压文件");
         System.out.println("exit - 退出");
         System.out.print("请输入命令：");
     }
@@ -125,16 +125,46 @@ public class CommandInvoker {
     }
 
 
-
+    // 复制文件或文件夹
     private void copy(String[] args) {
         if (args.length < 2) {
             System.out.println("请输入要拷贝的文件/文件夹名称。");
         } else {
-            copiedFilePath = fileManager.getFilePath(args[1]);
-            copiedFileName = args[1];
+            String sourceName = args[1];
+            copiedFilePath = fileManager.getFilePath(sourceName);
+            copiedFileName = sourceName;
             System.out.println("文件/文件夹已复制：" + copiedFileName);
         }
     }
+
+    // 粘贴文件或文件夹
+    private void paste(String[] args) {
+        if (copiedFilePath == null || copiedFileName == null) {
+            System.out.println("没有文件/文件夹被复制，无法粘贴。");
+        } else {
+            System.out.print("选择粘贴路径类型（1: 本地工作路径, 2: 用户自定义路径）：");
+            String pathType = scanner.nextLine();
+
+            String targetPath;
+            if (pathType.equals("1")) {
+                targetPath = pathManager.getCurrentDirectory();
+            } else {
+                System.out.print("输入粘贴后的自定义路径：");
+                targetPath = scanner.nextLine();
+            }
+
+            System.out.print("输入粘贴后的文件/文件夹名称：");
+            String newFileName = scanner.nextLine();
+
+            System.out.print("选择执行方式（1: 前台, 2: 后台）：");
+            String executionMode = scanner.nextLine();
+            boolean isBackground = executionMode.equals("2");
+
+            Command pasteCommand = new PasteCommand(fileManager, copiedFilePath, targetPath + "/" + newFileName, isBackground);
+            pasteCommand.execute();
+        }
+    }
+
 
     // 创建文件
     private void createFile(String[] args) {
@@ -211,33 +241,7 @@ public class CommandInvoker {
         }
     }
 
-    // 粘贴文件
-    private void paste(String[] args) {
-        if (copiedFilePath == null || copiedFileName == null) {
-            System.out.println("没有文件/文件夹被复制，无法粘贴。");
-        } else {
-            System.out.print("选择粘贴路径类型（1: 本地工作路径, 2: 用户自定义路径）：");
-            String pathType = scanner.nextLine();
 
-            String targetPath;
-            if (pathType.equals("1")) {
-                targetPath = pathManager.getCurrentDirectory();
-            } else {
-                System.out.print("输入粘贴后的自定义路径：");
-                targetPath = scanner.nextLine();
-            }
-
-            System.out.print("输入粘贴后的文件名称：");
-            String newFileName = scanner.nextLine();
-
-            System.out.print("选择执行方式（1: 前台, 2: 后台）：");
-            String executionMode = scanner.nextLine();
-            boolean isBackground = executionMode.equals("2");
-
-            Command pasteCommand = new PasteCommand(fileManager, copiedFilePath, targetPath + "/" + newFileName, isBackground);
-            pasteCommand.execute();
-        }
-    }
 
     //加密
     private void encrypt(String[] args) {
@@ -266,23 +270,26 @@ public class CommandInvoker {
     // 压缩文件夹
     private void compress(String[] args) {
         if (args.length < 2) {
-            System.out.println("请输入要压缩的文件夹名。");
+            System.out.println("请输入要压缩的文件/文件夹名。");
         } else {
-            String sourceDir = pathManager.getCurrentDirectory() + "/" + args[1];
+            String sourcePath = pathManager.getCurrentDirectory() + "/" + args[1];
             String zipFileName = promptForOutputFileName("压缩文件名");
-            Command compressCommand = new CompressCommand(new FileManager(), sourceDir, zipFileName);
+
+            Command compressCommand = new CompressCommand(new FileManager(), sourcePath, zipFileName);
             compressCommand.execute();
         }
     }
+
 
     // 解压文件
     private void decompress(String[] args) {
         if (args.length < 2) {
             System.out.println("请输入要解压的文件名。");
         } else {
-            String sourceDir = pathManager.getCurrentDirectory() + File.separator + args[1];
-            String destinationDirName = promptForOutputFileName("解压目标文件夹名");
-            Command decompressCommand = new DecompressCommand(new FileManager(), sourceDir, destinationDirName);
+            String sourceZipFile = pathManager.getCurrentDirectory() + File.separator + args[1];
+            String destinationFileName = promptForOutputFileName("解压目标文件名"); // 直接要求输入文件名
+
+            Command decompressCommand = new DecompressCommand(new FileManager(), sourceZipFile, destinationFileName);
             decompressCommand.execute();
         }
     }

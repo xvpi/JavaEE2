@@ -12,12 +12,15 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.util.zip.ZipInputStream;
 import java.io.File;
+import java.util.Scanner;
 
 public class FileManager {
     private String currentDirectory;
+    private Scanner scanner;
 
     public FileManager() {
         this.currentDirectory = System.getProperty("user.dir"); // 默认工作目录为当前用户目录
+        this.scanner = new Scanner(System.in);
     }
 
     // 获取当前目录路径
@@ -62,6 +65,15 @@ public class FileManager {
     public boolean deleteFile(String fileName) {
         File file = new File(currentDirectory, fileName);
         if (file.exists() && file.isFile()) {
+            // 提示用户确认
+            System.out.print("确认要删除文件 '" + fileName + "' 吗？(y/n): ");
+            String confirmation = scanner.nextLine();
+
+            if (!confirmation.equalsIgnoreCase("y")) {
+                System.out.println("删除操作已取消。");
+                return false; // 用户取消操作
+            }
+
             if (file.delete()) {
                 System.out.println("文件删除成功: " + file.getAbsolutePath());
                 return true;
@@ -74,6 +86,7 @@ public class FileManager {
             return false;
         }
     }
+
 
     // 创建文件夹
     public boolean createDirectory(String dirName) {
@@ -91,6 +104,15 @@ public class FileManager {
     public boolean deleteDirectory(String dirName) {
         File dir = new File(currentDirectory, dirName);
         if (dir.exists() && dir.isDirectory()) {
+            // 提示用户确认
+            System.out.print("确认要删除文件夹 '" + dirName + "' 吗？(y/n): ");
+            String confirmation = scanner.nextLine();
+
+            if (!confirmation.equalsIgnoreCase("y")) {
+                System.out.println("删除操作已取消。");
+                return false; // 用户取消操作
+            }
+
             try {
                 Files.walk(dir.toPath())
                         .map(Path::toFile)
@@ -200,97 +222,44 @@ public class FileManager {
         }
     }
 
-
-    // 拷贝文件
-    public boolean copyFile(String sourceFileName, String targetFileName) {
-        File sourceFile = new File(currentDirectory, sourceFileName);
-        File targetFile = new File(currentDirectory, targetFileName);
-
+    public boolean compress(String sourcePath, String zipFileName) {
+        File sourceFile = new File(sourcePath);
         if (!sourceFile.exists()) {
-            System.out.println("源文件不存在。");
-            return false;
-        }
-
-        try {
-            Files.copy(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            System.out.println("文件拷贝成功: " + targetFile.getAbsolutePath());
-            return true;
-        } catch (IOException e) {
-            System.out.println("文件拷贝失败: " + e.getMessage());
-            return false;
-        }
-    }
-
-    //前台粘贴
-    public void pasteFileWithProgress(String sourcePath, String targetPath, boolean showProgress) {
-        File source = new File(sourcePath);
-        File target = new File(targetPath);
-
-        try (InputStream in = new FileInputStream(source);
-             OutputStream out = new FileOutputStream(target)) {
-
-            long totalBytes = source.length();
-            long bytesCopied = 0;
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-
-            while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
-                bytesCopied += bytesRead;
-
-                if (showProgress) {
-                    int progress = (int) ((bytesCopied * 100) / totalBytes);
-
-                    // 每完成10%的拷贝，输出一次进度信息
-                    if (progress % 10 == 0) {
-                        StringBuilder progressBar = new StringBuilder();
-                        progressBar.append("\r进度: [");
-                        int completed = progress / 10;
-                        for (int i = 0; i < 10; i++) {
-                            if (i < completed) {
-                                progressBar.append("■");
-                            } else {
-                                progressBar.append("□");
-                            }
-                        }
-                        progressBar.append("] ").append(progress).append("%");
-                        System.out.print(progressBar.toString());
-                    }
-                }
-            }
-
-            if (showProgress) {
-                System.out.println("\n拷贝完成!");
-            }
-
-        } catch (IOException e) {
-            System.out.println("文件拷贝失败: " + e.getMessage());
-        }
-    }
-
-
-
-    public boolean compress(String sourceDir, String zipFileName) {
-        File dir = new File(sourceDir);
-        if (!dir.exists() || !dir.isDirectory()) {
-            System.out.println("源文件夹不存在或不是文件夹: " + sourceDir);
+            System.out.println("源文件/文件夹不存在: " + sourcePath);
             return false;
         }
 
         // 获取源目录的父级目录
-        String parentDir = dir.getParent();
+        String parentDir = sourceFile.getParent();
         // 创建压缩文件的完整路径
         String destZipFileName = parentDir + File.separator + zipFileName;
 
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(destZipFileName))) {
-            zipDirectory(dir, dir.getName(), zos);
+            if (sourceFile.isDirectory()) {
+                zipDirectory(sourceFile, sourceFile.getName(), zos);
+            } else {
+                zipFile(sourceFile, zos);
+            }
             System.out.println("压缩完成: " + destZipFileName);
             return true;
         } catch (IOException e) {
             e.printStackTrace(); // 输出详细异常信息
-            System.out.println("压缩文件夹时出错: " + e.getMessage());
+            System.out.println("压缩文件/文件夹时出错: " + e.getMessage());
             return false;
         }
+    }
+
+    // 压缩单个文件
+    private void zipFile(File file, ZipOutputStream zos) throws IOException {
+        zos.putNextEntry(new ZipEntry(file.getName()));
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = fis.read(buffer)) > 0) {
+                zos.write(buffer, 0, len);
+            }
+        }
+        zos.closeEntry();
     }
 
 
@@ -319,25 +288,28 @@ public class FileManager {
         }
     }
 
-    public boolean decompress(String sourceDir, String destDirName) {
-        File dir = new File(sourceDir);
-        if (!dir.exists() ) {
-            System.out.println("源压缩包不存在: " + sourceDir);
+    public boolean decompress(String sourcePath, String destDirName) {
+        File sourceFile = new File(sourcePath);
+        if (!sourceFile.exists()) {
+            System.out.println("源文件不存在: " + sourcePath);
             return false;
         }
+
         // 获取源目录的父级目录
-        String parentDir = dir.getParent();
-        // 创建压缩文件的完整路径
-        String destUnZipFileName = parentDir + File.separator + destDirName;
-        File destDir = new File(destUnZipFileName);
+        String parentDir = sourceFile.getParent();
+        // 创建解压目标文件夹的完整路径
+        String destUnZipDirName = parentDir + File.separator + destDirName;
+        File destDir = new File(destUnZipDirName);
+
         // 如果目标目录不存在，则创建
         if (!destDir.exists()) {
             destDir.mkdirs();
         }
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(dir))) {
+
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(sourceFile))) {
             ZipEntry zipEntry;
             while ((zipEntry = zis.getNextEntry()) != null) {
-                File newFile = new File(destUnZipFileName, zipEntry.getName());
+                File newFile = new File(destUnZipDirName, zipEntry.getName());
                 // 如果是目录，则创建
                 if (zipEntry.isDirectory()) {
                     newFile.mkdirs();
@@ -355,7 +327,7 @@ public class FileManager {
                 }
                 zis.closeEntry();
             }
-            System.out.println("解压完成: " + destDirName);
+            System.out.println("解压完成: " + destUnZipDirName);
             return true;
         } catch (IOException e) {
             System.out.println("解压文件时出错: " + e.getMessage());
@@ -364,65 +336,76 @@ public class FileManager {
     }
 
 
-    private File copyFile;
-    private long srcArea, destArea, startTime;
+    //前台粘贴
+    public void pasteFileWithProgress(String sourcePath, String targetPath, boolean showProgress) {
+        File source = new File(sourcePath);
+        File target = new File(targetPath);
 
-    public void copyFile(String src) {
-        this.copyFile = new File(src);
-        this.srcArea = countDirSize(copyFile.getAbsolutePath());
-        this.destArea = 0;
-        startTime = System.currentTimeMillis();
+        if (source.isDirectory()) {
+            // 处理文件夹的粘贴
+            pasteDirectoryWithProgress(source, target, showProgress);
+        } else {
+            // 处理文件的粘贴
+            try (InputStream in = new FileInputStream(source);
+                 OutputStream out = new FileOutputStream(target)) {
+
+                long totalBytes = source.length();
+                long bytesCopied = 0;
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                    bytesCopied += bytesRead;
+
+                    if (showProgress) {
+                        int progress = (int) ((bytesCopied * 100) / totalBytes);
+                        updateProgressBar(progress);
+                    }
+                }
+
+                if (showProgress) {
+                    System.out.println("\n拷贝完成!");
+                }
+
+            } catch (IOException e) {
+                System.out.println("文件拷贝失败: " + e.getMessage());
+            }
+        }
     }
 
-
-    public void copyDirectory(File srcDir, File destDir) {
-        if (!destDir.exists()) {
-            destDir.mkdirs();
+    private void pasteDirectoryWithProgress(File sourceDir, File targetDir, boolean showProgress) {
+        if (!targetDir.exists()) {
+            targetDir.mkdirs(); // 创建目标文件夹
         }
-        File[] files = srcDir.listFiles();
+
+        File[] files = sourceDir.listFiles();
         if (files != null) {
             for (File file : files) {
+                File targetFile = new File(targetDir, file.getName());
                 if (file.isDirectory()) {
-                    copyDirectory(file, new File(destDir, file.getName()));
+                    pasteDirectoryWithProgress(file, targetFile, showProgress); // 递归处理子文件夹
                 } else {
-                    copySingleFile(file, new File(destDir, file.getName()));
+                    pasteFileWithProgress(file.getAbsolutePath(), targetFile.getAbsolutePath(), showProgress); // 处理文件的粘贴
                 }
             }
         }
     }
 
-    private void copySingleFile(File src, File dest) {
-        try (InputStream in = new FileInputStream(src);
-             OutputStream out = new FileOutputStream(dest)) {
-            IOUtils.copy(in, out);
-            destArea += src.length();
-            showProgress(src.getName());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void showProgress(String fileName) {
-        double completionRate = destArea * 1.0 / srcArea;
-        long curTime = System.currentTimeMillis() - startTime;
-        System.out.printf("%-20s\t 已运行时间: %d 毫秒\t 当前复制完成比: %.2f%%\n", fileName, curTime, 100 * completionRate);
-        if (completionRate >= 1) {
-            System.out.println("文件夹复制完成");
-        }
-    }
-
-    private long countDirSize(String path) {
-        File file = new File(path);
-        long size = 0;
-        if (file.isDirectory()) {
-            File[] files = file.listFiles();
-            for (File f : files) {
-                size += countDirSize(f.getAbsolutePath());
+    private void updateProgressBar(int progress) {
+        // 更新进度条逻辑
+        StringBuilder progressBar = new StringBuilder();
+        progressBar.append("\r进度: [");
+        int completed = progress / 10;
+        for (int i = 0; i < 10; i++) {
+            if (i < completed) {
+                progressBar.append("■");
+            } else {
+                progressBar.append("□");
             }
-        } else {
-            size += file.length();
         }
-        return size;
+        progressBar.append("] ").append(progress).append("%");
+        System.out.print(progressBar.toString());
     }
 
 
