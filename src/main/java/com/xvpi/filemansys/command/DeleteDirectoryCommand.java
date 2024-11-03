@@ -11,6 +11,10 @@ public class DeleteDirectoryCommand implements Command {
 
     @Override
     public void execute() {
-        fileManager.deleteDirectory(dirName);
+        if (fileManager.deleteDirectory(dirName)) {
+            System.out.println("文件夹删除成功: " + dirName);
+        } else {
+            System.out.println("文件夹删除失败: " + dirName);
+        }
     }
 }

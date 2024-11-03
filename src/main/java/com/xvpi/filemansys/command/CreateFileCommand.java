@@ -13,6 +13,10 @@ public class CreateFileCommand implements Command {
 
     @Override
     public void execute() {
-        fileManager.createFile(fileName);
+        if (fileManager.createFile(fileName)) {
+            System.out.println("文件创建成功: " + fileName);
+        } else {
+            System.out.println("文件创建失败: " + fileName);
+        }
     }
 }

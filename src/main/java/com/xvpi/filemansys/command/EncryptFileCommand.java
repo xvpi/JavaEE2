@@ -4,16 +4,22 @@ import com.xvpi.filemansys.receiver.EncryptionManager;
 
 public class EncryptFileCommand implements Command {
     private EncryptionManager encryptionManager;
-    private String fileName;
+    private String inputFileName;
+    private String outputFileName;
 
-    public EncryptFileCommand(EncryptionManager encryptionManager, String fileName) {
+    public EncryptFileCommand(EncryptionManager encryptionManager, String inputFileName, String outputFileName) {
         this.encryptionManager = encryptionManager;
-        this.fileName = fileName;
+        this.inputFileName = inputFileName;
+        this.outputFileName = outputFileName;
     }
 
     @Override
     public void execute() {
-        encryptionManager.encryptFile(fileName);
+        if (encryptionManager.encryptFile(inputFileName, outputFileName)) {
+            System.out.println("文件加密成功: " + outputFileName);
+        } else {
+            System.out.println("文件加密失败: " + inputFileName);
+        }
     }
 }
 

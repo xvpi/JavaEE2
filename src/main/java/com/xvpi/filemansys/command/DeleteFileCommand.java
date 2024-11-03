@@ -13,7 +13,11 @@ public class DeleteFileCommand implements Command {
 
     @Override
     public void execute() {
-        fileManager.deleteFile(fileName);
+        if (fileManager.deleteFile(fileName)) {
+            System.out.println("文件删除成功: " + fileName);
+        } else {
+            System.out.println("文件删除失败: " + fileName);
+        }
     }
 }
 

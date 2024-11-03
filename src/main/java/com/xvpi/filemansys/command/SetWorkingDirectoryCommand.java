@@ -25,7 +25,7 @@ public class SetWorkingDirectoryCommand implements Command {
             File newDirectory = new File(newPath);
 
             if (newDirectory.exists() && newDirectory.isDirectory()) {
-                fileManager.setCurrentDirectory(newDirectory);
+                fileManager.setCurrentDirectory(newDirectory.getAbsolutePath()); // 传递路径字符串
                 System.out.println("工作文件夹已更改为: " + newPath);
             } else {
                 System.out.println("无效的文件夹路径。继续使用默认文件夹。");

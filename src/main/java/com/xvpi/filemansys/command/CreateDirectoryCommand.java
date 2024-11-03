@@ -11,6 +11,10 @@ public class CreateDirectoryCommand implements Command {
 
     @Override
     public void execute() {
-        fileManager.createDirectory(dirName);
+        if (fileManager.createDirectory(dirName)) {
+            System.out.println("文件夹创建成功: " + dirName);
+        } else {
+            System.out.println("文件夹创建失败: " + dirName);
+        }
     }
 }

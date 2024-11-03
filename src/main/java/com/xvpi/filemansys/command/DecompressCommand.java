@@ -4,17 +4,21 @@ import com.xvpi.filemansys.receiver.FileManager;
 
 public class DecompressCommand implements Command {
     private FileManager fileManager;
-    private String zipFileName;
+    private String sourceDir;
     private String destinationDirectoryName;
 
-    public DecompressCommand(FileManager fileManager, String zipFileName, String destinationDirectoryName) {
+    public DecompressCommand(FileManager fileManager, String sourceDir, String destinationDirectoryName) {
         this.fileManager = fileManager;
-        this.zipFileName = zipFileName;
+        this.sourceDir = sourceDir;
         this.destinationDirectoryName = destinationDirectoryName;
     }
 
     @Override
     public void execute() {
-        fileManager.decompress(zipFileName, destinationDirectoryName);
+        if (fileManager.decompress(sourceDir, destinationDirectoryName)) {
+            System.out.println("文件解压成功: " + destinationDirectoryName);
+        } else {
+            System.out.println("文件解压失败，找不到源文件: " + sourceDir);
+        }
     }
 }
