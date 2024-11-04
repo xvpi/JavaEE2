@@ -4,7 +4,6 @@ import java.io.*;
 import java.util.Scanner;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 public class EncryptionManager {
     private static final String ALGORITHM = "AES";

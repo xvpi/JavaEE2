@@ -6,6 +6,8 @@ import com.xvpi.filemansys.receiver.*;
 import java.io.File;
 import java.util.Scanner;
 
+import static com.xvpi.filemansys.utils.FileUtils.promptForOutputFileName;
+
 public class CommandInvoker {
     private FileManager fileManager;
     private PathManager pathManager;
@@ -295,8 +297,5 @@ public class CommandInvoker {
     }
 
 
-    private String promptForOutputFileName(String prompt) {
-        System.out.print("输入" + prompt + "：");
-        return scanner.nextLine();
-    }
+
 }

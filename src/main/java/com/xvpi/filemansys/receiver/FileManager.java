@@ -1,13 +1,13 @@
 package com.xvpi.filemansys.receiver;
 
-import org.apache.commons.io.IOUtils;
-
+import com.xvpi.filemansys.exception.FileManagementException;
+import com.xvpi.filemansys.logger.Logger;
+import com.xvpi.filemansys.utils.*;
 import java.io.*;
 import java.nio.file.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.util.zip.ZipInputStream;
@@ -62,7 +62,7 @@ public class FileManager {
     }
 
     // 删除文件
-    public boolean deleteFile(String fileName) {
+    public boolean deleteFile(String fileName) throws FileManagementException {
         File file = new File(currentDirectory, fileName);
         if (file.exists() && file.isFile()) {
             // 提示用户确认
@@ -73,18 +73,17 @@ public class FileManager {
                 System.out.println("删除操作已取消。");
                 return false; // 用户取消操作
             }
-
             if (file.delete()) {
                 System.out.println("文件删除成功: " + file.getAbsolutePath());
                 return true;
             } else {
-                System.out.println("文件删除失败。");
-                return false;
+                throw new FileManagementException("文件删除失败: " + file.getAbsolutePath());
             }
         } else {
             System.out.println("文件不存在。");
             return false;
         }
+
     }
 
 
@@ -288,11 +287,10 @@ public class FileManager {
         }
     }
 
-    public boolean decompress(String sourcePath, String destDirName) {
+    public boolean decompress(String sourcePath, String destDirName) throws FileManagementException{
         File sourceFile = new File(sourcePath);
         if (!sourceFile.exists()) {
-            System.out.println("源文件不存在: " + sourcePath);
-            return false;
+            throw new FileManagementException("源压缩包不存在: " + sourcePath);
         }
 
         // 获取源目录的父级目录
@@ -335,15 +333,14 @@ public class FileManager {
         }
     }
 
-
     //前台粘贴
-    public void pasteFileWithProgress(String sourcePath, String targetPath, boolean showProgress) {
+    public void pasteFileWithProgress(String sourcePath, String targetPath, boolean showProgress,  Logger logger) {
         File source = new File(sourcePath);
         File target = new File(targetPath);
 
         if (source.isDirectory()) {
             // 处理文件夹的粘贴
-            pasteDirectoryWithProgress(source, target, showProgress);
+            pasteDirectoryWithProgress(source, target, showProgress, logger);
         } else {
             // 处理文件的粘贴
             try (InputStream in = new FileInputStream(source);
@@ -360,12 +357,14 @@ public class FileManager {
 
                     if (showProgress) {
                         int progress = (int) ((bytesCopied * 100) / totalBytes);
-                        updateProgressBar(progress);
+                        FileUtils.updateProgressBar(progress);
                     }
                 }
 
                 if (showProgress) {
                     System.out.println("\n拷贝完成!");
+                    // 实现文件粘贴的逻辑，同时在需要的地方记录日志
+                    logger.log("粘贴文件: " + sourcePath + " 到 " + targetPath);
                 }
 
             } catch (IOException e) {
@@ -374,7 +373,7 @@ public class FileManager {
         }
     }
 
-    private void pasteDirectoryWithProgress(File sourceDir, File targetDir, boolean showProgress) {
+    private void pasteDirectoryWithProgress(File sourceDir, File targetDir, boolean showProgress,Logger logger) {
         if (!targetDir.exists()) {
             targetDir.mkdirs(); // 创建目标文件夹
         }
@@ -384,30 +383,14 @@ public class FileManager {
             for (File file : files) {
                 File targetFile = new File(targetDir, file.getName());
                 if (file.isDirectory()) {
-                    pasteDirectoryWithProgress(file, targetFile, showProgress); // 递归处理子文件夹
+                    pasteDirectoryWithProgress(file, targetFile, showProgress,logger); // 递归处理子文件夹
                 } else {
-                    pasteFileWithProgress(file.getAbsolutePath(), targetFile.getAbsolutePath(), showProgress); // 处理文件的粘贴
+                    pasteFileWithProgress(file.getAbsolutePath(), targetFile.getAbsolutePath(), showProgress,logger); //
+                    // 处理文件的粘贴
                 }
             }
         }
     }
-
-    private void updateProgressBar(int progress) {
-        // 更新进度条逻辑
-        StringBuilder progressBar = new StringBuilder();
-        progressBar.append("\r进度: [");
-        int completed = progress / 10;
-        for (int i = 0; i < 10; i++) {
-            if (i < completed) {
-                progressBar.append("■");
-            } else {
-                progressBar.append("□");
-            }
-        }
-        progressBar.append("] ").append(progress).append("%");
-        System.out.print(progressBar.toString());
-    }
-
 
 
 }

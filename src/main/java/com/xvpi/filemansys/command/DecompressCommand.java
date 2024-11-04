@@ -1,5 +1,6 @@
 package com.xvpi.filemansys.command;
 
+import com.xvpi.filemansys.exception.FileManagementException;
 import com.xvpi.filemansys.receiver.FileManager;
 
 public class DecompressCommand implements Command {
@@ -15,10 +16,14 @@ public class DecompressCommand implements Command {
 
     @Override
     public void execute() {
-        if (fileManager.decompress(sourceDir, destinationDirectoryName)) {
-            System.out.println("文件解压成功: " + destinationDirectoryName);
-        } else {
-            System.out.println("文件解压失败，找不到源文件: " + sourceDir);
+        try {
+            if (fileManager.decompress(sourceDir, destinationDirectoryName)) {
+                System.out.println("文件解压成功: " + destinationDirectoryName);
+            } else {
+                System.out.println("文件解压失败，找不到源文件: " + sourceDir);
+            }
+        } catch (FileManagementException e) {
+            System.out.println("解压失败: " + e.getMessage());
         }
     }
 }

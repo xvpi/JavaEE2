@@ -1,12 +1,28 @@
 package com.xvpi.filemansys.utils;
 
 import java.io.File;
+import java.util.Scanner;
 
 public class FileUtils {
-
-    public static boolean isFileExists(String fileName) {
-        File file = new File(fileName);
-        return file.exists();
+    private static Scanner scanner;
+    public static void updateProgressBar(int progress) {
+        // 更新进度条逻辑
+        StringBuilder progressBar = new StringBuilder();
+        progressBar.append("\r进度: [");
+        int completed = progress / 10;
+        for (int i = 0; i < 10; i++) {
+            if (i < completed) {
+                progressBar.append("■");
+            } else {
+                progressBar.append("□");
+            }
+        }
+        progressBar.append("] ").append(progress).append("%");
+        System.out.print(progressBar.toString());
+    }
+    public static String promptForOutputFileName(String prompt) {
+        System.out.print("输入" + prompt + "：");
+        return scanner.nextLine();
     }
 }
 
