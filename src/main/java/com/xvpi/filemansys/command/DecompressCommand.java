@@ -1,15 +1,16 @@
 package com.xvpi.filemansys.command;
 
 import com.xvpi.filemansys.exception.FileManagementException;
-import com.xvpi.filemansys.receiver.FileManager;
+import com.xvpi.filemansys.receiver.CompressionManager;
+
 
 public class DecompressCommand implements Command {
-    private FileManager fileManager;
+    private CompressionManager compressManager;
     private String sourceDir;
     private String destinationDirectoryName;
 
-    public DecompressCommand(FileManager fileManager, String sourceDir, String destinationDirectoryName) {
-        this.fileManager = fileManager;
+    public DecompressCommand(CompressionManager compressManager, String sourceDir, String destinationDirectoryName) {
+        this.compressManager = compressManager;
         this.sourceDir = sourceDir;
         this.destinationDirectoryName = destinationDirectoryName;
     }
@@ -17,7 +18,7 @@ public class DecompressCommand implements Command {
     @Override
     public void execute() {
         try {
-            if (fileManager.decompress(sourceDir, destinationDirectoryName)) {
+            if (compressManager.decompress(sourceDir, destinationDirectoryName)) {
                 System.out.println("文件解压成功: " + destinationDirectoryName);
             } else {
                 System.out.println("文件解压失败，找不到源文件: " + sourceDir);

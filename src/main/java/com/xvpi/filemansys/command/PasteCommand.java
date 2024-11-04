@@ -1,20 +1,20 @@
 package com.xvpi.filemansys.command;
 
 import com.xvpi.filemansys.multithreading.FileCopyTask;
-import com.xvpi.filemansys.receiver.FileManager;
 
 import com.xvpi.filemansys.logger.FileLogger;
 import com.xvpi.filemansys.logger.LogDecorator;
-
+import com.xvpi.filemansys.receiver.PasteManager;
 public class PasteCommand implements Command {
-    private FileManager fileManager;
+    private PasteManager pasteManager;
     private String sourceFilePath;
     private String targetFilePath;
     private boolean isBackground;
     private LogDecorator logger;
 
-        public PasteCommand(FileManager fileManager, String sourceFilePath, String targetFilePath, boolean isBackground) {
-            this.fileManager = fileManager;
+        public PasteCommand(PasteManager pasteManager, String sourceFilePath, String targetFilePath,
+                            boolean isBackground) {
+            this.pasteManager = pasteManager;
             this.sourceFilePath = sourceFilePath;
             this.targetFilePath = targetFilePath;
             this.isBackground = isBackground;
@@ -32,7 +32,7 @@ public class PasteCommand implements Command {
                 logger.log("文件正在后台拷贝...");
             } else {
                 // 同步执行，并传入 logger 记录日志
-                fileManager.pasteFileWithProgress(sourceFilePath, targetFilePath, true, logger); // 确保这里也能处理 logger
+                pasteManager.pasteFileWithProgress(sourceFilePath, targetFilePath, true, logger); // 确保这里也能处理 logger
                 logger.log("文件粘贴完成。");
             }
         }

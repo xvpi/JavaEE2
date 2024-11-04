@@ -1,7 +1,7 @@
 package com.xvpi.filemansys.command;
 
-import com.xvpi.filemansys.receiver.FileManager;
 
+import com.xvpi.filemansys.receiver.FileManager;
 
 public class SearchFileCommand implements Command {
     private FileManager fileManager;

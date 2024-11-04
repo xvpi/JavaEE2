@@ -1,51 +1,22 @@
 package com.xvpi.filemansys.receiver;
 
 import com.xvpi.filemansys.exception.FileManagementException;
-import com.xvpi.filemansys.logger.Logger;
-import com.xvpi.filemansys.utils.*;
-import java.io.*;
-import java.nio.file.*;
+import com.xvpi.filemansys.strategy.SortStrategy;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-import java.util.zip.ZipInputStream;
-import java.io.File;
-import java.util.Scanner;
-
-public class FileManager {
-    private String currentDirectory;
+public class FileManager extends AbstractFileManager {
     private Scanner scanner;
-
-    public FileManager() {
-        this.currentDirectory = System.getProperty("user.dir"); // 默认工作目录为当前用户目录
-        this.scanner = new Scanner(System.in);
-    }
-
-    // 获取当前目录路径
-    public String getCurrentDirectory() {
-        return currentDirectory;
-    }
-
-    // 更改当前目录
-    public void setCurrentDirectory(String path) {
-        File dir = new File(path);
-        if (dir.exists() && dir.isDirectory()) {
-            currentDirectory = dir.getAbsolutePath();
-        } else {
-            System.out.println("路径无效，无法更改工作目录。");
-        }
-    }
-
-    // 获取文件或文件夹的完整路径
-    public String getFilePath(String fileName) {
-        File file = new File(currentDirectory, fileName); // 使用当前目录和文件名生成路径
-        return file.getAbsolutePath();
-    }
-
-    // 创建文件
+    @Override
     public boolean createFile(String fileName) {
+        // 文件创建逻辑
         File file = new File(currentDirectory, fileName);
         try {
             if (file.createNewFile()) {
@@ -61,13 +32,15 @@ public class FileManager {
         }
     }
 
-    // 删除文件
+    @Override
     public boolean deleteFile(String fileName) throws FileManagementException {
+        // 文件删除逻辑
         File file = new File(currentDirectory, fileName);
         if (file.exists() && file.isFile()) {
             // 提示用户确认
+            this.scanner = new Scanner(System.in);
             System.out.print("确认要删除文件 '" + fileName + "' 吗？(y/n): ");
-            String confirmation = scanner.nextLine();
+            String confirmation = scanner.nextLine().trim(); // 读取用户输入并去除前后空格
 
             if (!confirmation.equalsIgnoreCase("y")) {
                 System.out.println("删除操作已取消。");
@@ -86,9 +59,9 @@ public class FileManager {
 
     }
 
-
-    // 创建文件夹
+    @Override
     public boolean createDirectory(String dirName) {
+        // 文件夹创建逻辑
         File dir = new File(currentDirectory, dirName);
         if (dir.mkdir()) {
             System.out.println("文件夹创建成功: " + dir.getAbsolutePath());
@@ -99,8 +72,10 @@ public class FileManager {
         }
     }
 
-    // 删除文件夹
+    @Override
     public boolean deleteDirectory(String dirName) {
+        // 文件夹删除逻辑
+        this.scanner = new Scanner(System.in);
         File dir = new File(currentDirectory, dirName);
         if (dir.exists() && dir.isDirectory()) {
             // 提示用户确认
@@ -128,41 +103,33 @@ public class FileManager {
         }
     }
 
-    // 列出当前文件夹内容，支持排序
-    public void listFiles(String seq) {
-        File dir = new File(currentDirectory);
-        File[] files = dir.listFiles();
 
-        if (files != null) {
-
-                if (seq.equals("name")) {
-                    // 按名称排序
-                    Arrays.sort(files, Comparator.comparing(File::getName));
-                } else if (seq.equals("time")) {
-                    // 按最近修改时间排序
-                    Arrays.sort(files, Comparator.comparingLong(File::lastModified));
-                } else if (seq.equals("byte")) {
-                    // 按文件大小排序
-                    Arrays.sort(files, Comparator.comparingLong(File::length));
-                } else {
-                    System.out.println("输入错误");
-                    return;
+    @Override
+    public String openFile(String fileName) {
+        // 文件读取逻辑
+        File file = new File(currentDirectory, fileName);
+        if (file.exists() && file.isFile()) {
+            StringBuilder content = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                int lineNumber = 1; // 行号从1开始
+                while ((line = reader.readLine()) != null) {
+                    content.append(String.format("%-5d: %s%n", lineNumber, line)); // 添加行号
+                    lineNumber++;
                 }
-             System.out.printf("%-24s\t%-20s\t%-8s\t%-15s\n", "文件名", "最后修改时间", "类型", "大小"); // 表头
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            for (File file : files) {
-                String fileName = file.getName();
-                String lastModified = sdf.format(new Date(file.lastModified()));
-                String type = file.isDirectory() ? "directory" : "file";
-                long size = file.length();
-                System.out.printf("%-24s\t%-20s\t%-8s\t%d Bytes\n", fileName, lastModified, type, size);
+                return content.toString(); // 返回文件内容
+            } catch (IOException e) {
+                System.out.println("文件读取失败: " + e.getMessage());
+                return null;
             }
         } else {
-            System.out.println("当前目录不存在或不是一个目录");
+            System.out.println("文件不存在。");
+            return null;
         }
     }
 
     //查找文件
+    @Override
     public void searchFiles(String searchTerm) {
         File dir = new File(currentDirectory);
         File[] files = dir.listFiles();
@@ -198,199 +165,45 @@ public class FileManager {
         }
     }
 
-    // 打开文件内容，显示行号
-    public String openFile(String fileName) {
-        File file = new File(currentDirectory, fileName);
-        if (file.exists() && file.isFile()) {
-            StringBuilder content = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                int lineNumber = 1; // 行号从1开始
-                while ((line = reader.readLine()) != null) {
-                    content.append(String.format("%-5d: %s%n", lineNumber, line)); // 添加行号
-                    lineNumber++;
-                }
-                return content.toString(); // 返回文件内容
-            } catch (IOException e) {
-                System.out.println("文件读取失败: " + e.getMessage());
-                return null;
+
+    private SortStrategy<File[]> sortStrategy;
+    @Override
+    // 列出当前文件夹内容，支持排序
+    public void listFiles(String seq) {
+        File dir = new File(currentDirectory);
+        File[] files = dir.listFiles();
+        SortStrategy<File[]> strategy = null;
+        if (files != null) {
+            // 选择排序策略
+            switch (seq) {
+                case "name":
+                    sortStrategy = new SortStrategy.NameSortStrategy();
+                    break;
+                case "time":
+                    sortStrategy = new SortStrategy.TimeSortStrategy();
+                    break;
+                case "byte":
+                    sortStrategy = new SortStrategy.SizeSortStrategy();
+                    break;
+                default:
+                    System.out.println("输入错误");
+                    return;
+            }
+            // 使用选定的策略进行排序
+            sortStrategy.sort(files);
+            //打印文件信息
+            System.out.printf("%-24s\t%-20s\t%-8s\t%-15s\n", "文件名", "最后修改时间", "类型", "大小"); // 表头
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            for (File file : files) {
+                String fileName = file.getName();
+                String lastModified = sdf.format(new Date(file.lastModified()));
+                String type = file.isDirectory() ? "directory" : "file";
+                long size = file.length();
+                System.out.printf("%-24s\t%-20s\t%-8s\t%d Bytes\n", fileName, lastModified, type, size);
             }
         } else {
-            System.out.println("文件不存在。");
-            return null;
+            System.out.println("当前目录不存在或不是一个目录");
         }
     }
-
-    public boolean compress(String sourcePath, String zipFileName) {
-        File sourceFile = new File(sourcePath);
-        if (!sourceFile.exists()) {
-            System.out.println("源文件/文件夹不存在: " + sourcePath);
-            return false;
-        }
-
-        // 获取源目录的父级目录
-        String parentDir = sourceFile.getParent();
-        // 创建压缩文件的完整路径
-        String destZipFileName = parentDir + File.separator + zipFileName;
-
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(destZipFileName))) {
-            if (sourceFile.isDirectory()) {
-                zipDirectory(sourceFile, sourceFile.getName(), zos);
-            } else {
-                zipFile(sourceFile, zos);
-            }
-            System.out.println("压缩完成: " + destZipFileName);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace(); // 输出详细异常信息
-            System.out.println("压缩文件/文件夹时出错: " + e.getMessage());
-            return false;
-        }
-    }
-
-    // 压缩单个文件
-    private void zipFile(File file, ZipOutputStream zos) throws IOException {
-        zos.putNextEntry(new ZipEntry(file.getName()));
-        try (FileInputStream fis = new FileInputStream(file)) {
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = fis.read(buffer)) > 0) {
-                zos.write(buffer, 0, len);
-            }
-        }
-        zos.closeEntry();
-    }
-
-
-
-    private void zipDirectory(File folder, String parentFolder, ZipOutputStream zos) throws IOException {
-        File[] files = folder.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isHidden()) {
-                    continue; // 跳过隐藏文件
-                }
-                if (file.isDirectory()) {
-                    zipDirectory(file, parentFolder + File.separator + file.getName(), zos);
-                } else {
-                    zos.putNextEntry(new ZipEntry(parentFolder + File.separator + file.getName()));
-                    try (FileInputStream fis = new FileInputStream(file)) {
-                        byte[] buffer = new byte[1024];
-                        int len;
-                        while ((len = fis.read(buffer)) > 0) {
-                            zos.write(buffer, 0, len);
-                        }
-                    }
-                    zos.closeEntry();
-                }
-            }
-        }
-    }
-
-    public boolean decompress(String sourcePath, String destDirName) throws FileManagementException{
-        File sourceFile = new File(sourcePath);
-        if (!sourceFile.exists()) {
-            throw new FileManagementException("源压缩包不存在: " + sourcePath);
-        }
-
-        // 获取源目录的父级目录
-        String parentDir = sourceFile.getParent();
-        // 创建解压目标文件夹的完整路径
-        String destUnZipDirName = parentDir + File.separator + destDirName;
-        File destDir = new File(destUnZipDirName);
-
-        // 如果目标目录不存在，则创建
-        if (!destDir.exists()) {
-            destDir.mkdirs();
-        }
-
-        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(sourceFile))) {
-            ZipEntry zipEntry;
-            while ((zipEntry = zis.getNextEntry()) != null) {
-                File newFile = new File(destUnZipDirName, zipEntry.getName());
-                // 如果是目录，则创建
-                if (zipEntry.isDirectory()) {
-                    newFile.mkdirs();
-                } else {
-                    // 创建文件的父目录
-                    new File(newFile.getParent()).mkdirs();
-                    // 写入文件内容
-                    try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(newFile))) {
-                        byte[] buffer = new byte[1024];
-                        int len;
-                        while ((len = zis.read(buffer)) > 0) {
-                            bos.write(buffer, 0, len);
-                        }
-                    }
-                }
-                zis.closeEntry();
-            }
-            System.out.println("解压完成: " + destUnZipDirName);
-            return true;
-        } catch (IOException e) {
-            System.out.println("解压文件时出错: " + e.getMessage());
-            return false;
-        }
-    }
-
-    //前台粘贴
-    public void pasteFileWithProgress(String sourcePath, String targetPath, boolean showProgress,  Logger logger) {
-        File source = new File(sourcePath);
-        File target = new File(targetPath);
-
-        if (source.isDirectory()) {
-            // 处理文件夹的粘贴
-            pasteDirectoryWithProgress(source, target, showProgress, logger);
-        } else {
-            // 处理文件的粘贴
-            try (InputStream in = new FileInputStream(source);
-                 OutputStream out = new FileOutputStream(target)) {
-
-                long totalBytes = source.length();
-                long bytesCopied = 0;
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-
-                while ((bytesRead = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
-                    bytesCopied += bytesRead;
-
-                    if (showProgress) {
-                        int progress = (int) ((bytesCopied * 100) / totalBytes);
-                        FileUtils.updateProgressBar(progress);
-                    }
-                }
-
-                if (showProgress) {
-                    System.out.println("\n拷贝完成!");
-                    // 实现文件粘贴的逻辑，同时在需要的地方记录日志
-                    logger.log("粘贴文件: " + sourcePath + " 到 " + targetPath);
-                }
-
-            } catch (IOException e) {
-                System.out.println("文件拷贝失败: " + e.getMessage());
-            }
-        }
-    }
-
-    private void pasteDirectoryWithProgress(File sourceDir, File targetDir, boolean showProgress,Logger logger) {
-        if (!targetDir.exists()) {
-            targetDir.mkdirs(); // 创建目标文件夹
-        }
-
-        File[] files = sourceDir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                File targetFile = new File(targetDir, file.getName());
-                if (file.isDirectory()) {
-                    pasteDirectoryWithProgress(file, targetFile, showProgress,logger); // 递归处理子文件夹
-                } else {
-                    pasteFileWithProgress(file.getAbsolutePath(), targetFile.getAbsolutePath(), showProgress,logger); //
-                    // 处理文件的粘贴
-                }
-            }
-        }
-    }
-
-
 }
+

@@ -1,10 +1,11 @@
-package com.xvpi.filemansys.utils;
+package com.xvpi.filemansys.strategy;
 
-import java.io.File;
+
 import java.util.Scanner;
 
 public class FileUtils {
     private static Scanner scanner;
+
     public static void updateProgressBar(int progress) {
         // 更新进度条逻辑
         StringBuilder progressBar = new StringBuilder();
@@ -21,6 +22,7 @@ public class FileUtils {
         System.out.print(progressBar.toString());
     }
     public static String promptForOutputFileName(String prompt) {
+        scanner = new Scanner(System.in);
         System.out.print("输入" + prompt + "：");
         return scanner.nextLine();
     }

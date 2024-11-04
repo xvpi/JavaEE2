@@ -6,7 +6,7 @@ import com.xvpi.filemansys.receiver.*;
 import java.io.File;
 import java.util.Scanner;
 
-import static com.xvpi.filemansys.utils.FileUtils.promptForOutputFileName;
+import static com.xvpi.filemansys.strategy.FileUtils.promptForOutputFileName;
 
 public class CommandInvoker {
     private FileManager fileManager;
@@ -23,6 +23,20 @@ public class CommandInvoker {
 
     public void start() {
         boolean running = true;
+        System.out.println(" ▄         ▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄            ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄       ▄▄  " +
+                "▄▄▄▄▄▄▄▄▄▄▄ \n" +
+                "▐░▌       ▐░▌▐░░░░░░░░░░░▌▐░▌          ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░▌     ▐░░▌▐░░░░░░░░░░░▌\n" +
+                "▐░▌       ▐░▌▐░█▀▀▀▀▀▀▀▀▀ ▐░▌          ▐░█▀▀▀▀▀▀▀▀▀ ▐░█▀▀▀▀▀▀▀█░▌▐░▌░▌   ▐░▐░▌▐░█▀▀▀▀▀▀▀▀▀ \n" +
+                "▐░▌       ▐░▌▐░▌          ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌▐░▌ ▐░▌▐░▌▐░▌          \n" +
+                "▐░▌   ▄   ▐░▌▐░█▄▄▄▄▄▄▄▄▄ ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌ ▐░▐░▌ ▐░▌▐░█▄▄▄▄▄▄▄▄▄ \n" +
+                "▐░▌  ▐░▌  ▐░▌▐░░░░░░░░░░░▌▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌  ▐░▌  ▐░▌▐░░░░░░░░░░░▌\n" +
+                "▐░▌ ▐░▌░▌ ▐░▌▐░█▀▀▀▀▀▀▀▀▀ ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌   ▀   ▐░▌▐░█▀▀▀▀▀▀▀▀▀ \n" +
+                "▐░▌▐░▌ ▐░▌▐░▌▐░▌          ▐░▌          ▐░▌          ▐░▌       ▐░▌▐░▌       ▐░▌▐░▌          \n" +
+                "▐░▌░▌   ▐░▐░▌▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄▄▄ ▐░█▄▄▄▄▄▄▄█░▌▐░▌       ▐░▌▐░█▄▄▄▄▄▄▄▄▄ \n" +
+                "▐░░▌     ▐░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░▌       ▐░▌▐░░░░░░░░░░░▌\n" +
+                " ▀▀       ▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀  ▀         ▀  ▀▀▀▀▀▀▀▀▀▀▀ \n");
+
+        System.out.println("欢迎使用命令行文件管理系统");
         while (running) {
             showCurrentDirectory();
             showMenu();
@@ -93,7 +107,7 @@ public class CommandInvoker {
     }
 
     private void showMenu() {
-        System.out.println("\n==== 文件管理系统 ====");
+        System.out.println("\n============================= 文件管理系统 =============================");
         System.out.println("cd <路径> - 设置当前文件夹    cd .. - 返回上一层    cd ../.. - 返回上两层");
         System.out.println("chdir - 查看当前工作路径         list <name/time/byte> - 按序罗列文件夹内容");
         System.out.println("mkFile <文件名> - 创建文件       delFile <文件名> - 删除文件");
@@ -161,8 +175,8 @@ public class CommandInvoker {
             System.out.print("选择执行方式（1: 前台, 2: 后台）：");
             String executionMode = scanner.nextLine();
             boolean isBackground = executionMode.equals("2");
-
-            Command pasteCommand = new PasteCommand(fileManager, copiedFilePath, targetPath + "/" + newFileName, isBackground);
+            Command pasteCommand = new PasteCommand(new PasteManager(), copiedFilePath, targetPath + "/" + newFileName,
+                    isBackground);
             pasteCommand.execute();
         }
     }
@@ -277,7 +291,7 @@ public class CommandInvoker {
             String sourcePath = pathManager.getCurrentDirectory() + "/" + args[1];
             String zipFileName = promptForOutputFileName("压缩文件名");
 
-            Command compressCommand = new CompressCommand(new FileManager(), sourcePath, zipFileName);
+            Command compressCommand = new CompressCommand(new CompressionManager(), sourcePath, zipFileName);
             compressCommand.execute();
         }
     }
@@ -291,7 +305,8 @@ public class CommandInvoker {
             String sourceZipFile = pathManager.getCurrentDirectory() + File.separator + args[1];
             String destinationFileName = promptForOutputFileName("解压目标文件名"); // 直接要求输入文件名
 
-            Command decompressCommand = new DecompressCommand(new FileManager(), sourceZipFile, destinationFileName);
+            Command decompressCommand = new DecompressCommand(new CompressionManager(), sourceZipFile,
+                    destinationFileName);
             decompressCommand.execute();
         }
     }

@@ -5,33 +5,28 @@ import java.util.Scanner;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.spec.SecretKeySpec;
+
 public class EncryptionManager {
     private static final String ALGORITHM = "AES";
-    private static final String KEY = "1234567890123456"; // 16字节密钥
+    private static String key; // 将密钥作为类的实例变量
 
     public boolean encryptFile(String inputFileName, String outputFileName) {
         System.out.println("请输入加密密匙（1到16位）");
-        Scanner scanner=new Scanner(System.in);
-        String KEY=scanner.nextLine();
-        int t =0;
-        while(KEY.length()<16){
-            KEY+=KEY.charAt(t);
-            t++;
-        }
+        Scanner scanner = new Scanner(System.in);
+        key = normalizeKey(scanner.nextLine());
         return processFile(Cipher.ENCRYPT_MODE, inputFileName, outputFileName);
     }
 
     public boolean decryptFile(String inputFileName, String outputFileName) {
         System.out.println("请输入解密密匙");
-        Scanner scanner=new Scanner(System.in);
-        String secretKey=scanner.nextLine();
-        int t =0;
-        while(secretKey.length()<16){
-            secretKey+=secretKey.charAt(t);
-            t++;
-        }
+        Scanner scanner = new Scanner(System.in);
+        String secretKey = scanner.nextLine();
+        secretKey = normalizeKey(secretKey); // 标准化解密密钥为16字节
+
         // 验证密钥
-        if (!secretKey.equals(KEY)) {
+        if (!secretKey.equals(key)) {
+            //System.out.println(secretKey);
+            //System.out.println(key);
             System.out.println("解密失败：密钥不正确。");
             return false;
         }
@@ -39,19 +34,27 @@ public class EncryptionManager {
         return processFile(Cipher.DECRYPT_MODE, inputFileName, outputFileName);
     }
 
+    private String normalizeKey(String key) {
+        StringBuilder normalizedKey = new StringBuilder(key);
+        while (normalizedKey.length() < 16) {
+            normalizedKey.append(normalizedKey.charAt(normalizedKey.length() % key.length()));
+        }
+        return normalizedKey.substring(0, 16); // 保证返回16字节
+    }
+
     private boolean processFile(int cipherMode, String inputFile, String outputFile) {
         try {
-            SecretKeySpec keySpec = new SecretKeySpec(KEY.getBytes(), ALGORITHM);
+            SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(), ALGORITHM);
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(cipherMode, keySpec);
             File dir = new File(inputFile);
-            if (!dir.exists() ) {
-                System.out.println("源压缩包不存在: " + inputFile);
+            if (!dir.exists()) {
+                System.out.println("源文件不存在: " + inputFile);
                 return false;
             }
-            // 获取源目录的父级目录
+            // 获取源文件的父级目录
             String parentDir = dir.getParent();
-            // 创建压缩文件的完整路径
+            // 创建输出文件的完整路径
             String outputFileDir = parentDir + File.separator + outputFile;
 
             try (FileInputStream inputStream = new FileInputStream(inputFile);
